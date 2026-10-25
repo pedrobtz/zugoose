@@ -73,9 +73,18 @@ author's machine, and the cost of today's hand-built glue is measured.
 **Work.**
 
 - `zugoose_default_pin()`, `goose_fetch()` and `goose_path()`: clone the
-  pinned commit, build it into a user cache, and report where it is. Fail
+  pinned release, build it into a user cache, and report where it is. Fail
   with a classed `zugoose_error` when `git`, a C++ compiler or `cmake` is
   missing.
+- The pin is a release tag plus its commit SHA (D11): the newest Goose
+  release when the stage starts (`v2026.3`, `8511ae3`, on 2026-10-25).
+  `goose_fetch()` stops if the tag no longer points at the SHA, and warns
+  for an untagged commit.
+- Check that `zugojson`'s Goose source compiles at that release. The RFC
+  was written against `e76d5c9`, 103 commits after `v2026.3`, and those
+  commits touch `runtime.h`, `runtime_impl.h` and `stdlib/`. If it does
+  not, record what is missing and wait for the next release rather than
+  pin a commit.
 - Choose and record the cache location (design §16).
 - `zugoose_info()` reports the pin and whether a compiler is cached.
 - Tests that need the network or a toolchain skip on CRAN and when the
@@ -91,8 +100,10 @@ author's machine, and the cost of today's hand-built glue is measured.
 - Without the tools, those tests skip and `R CMD check` passes on the quick
   profile.
 - `.agents/baseline.md` holds the §10 measurements.
+- `zugoose_default_pin()` is a release tag whose recorded SHA matches, and
+  `zugojson`'s Goose source compiles at it.
 
-**Design.** §5 (the compiler), §10, §16.
+**Design.** §5 (the compiler), §10, §16, D11.
 
 ## Stage 2 — Set-up, scalars and the POSIX runtime
 
@@ -120,6 +131,20 @@ arrives as an R error with the stacks rewound.
   committed, so the tests build it without Goose.
 - Settle the default data stack size and the wrapper file layout
   (design §16).
+- Reproducibility from the pin (D12):
+  - pristine `runtime.h` and `runtime_impl.h` at the pin under
+    `tools/upstream/<tag>/`, with sha256s in a `PROVENANCE` file;
+  - the sha256 of each upstream range copied into `goose_vendor.c`,
+    checked on every generation;
+  - local changes, starting with `__extension__` on `__int128`, as files
+    in `tools/patches/` with a header saying why, applied by the
+    generator and listed in `PROVENANCE`;
+  - a test comparing the `gs_` symbols the fixture's generated C
+    references (`nm -u`) with those the runtime and `goose_vendor.c`
+    define;
+  - no timestamps or absolute paths in generated files.
+- `.agents/goose-bump.md`: the procedure for moving to a new Goose
+  release, written so it is mechanical.
 
 **Exit criteria.**
 
@@ -127,9 +152,14 @@ arrives as an R error with the stacks rewound.
 - An index out of bounds, an `assert`, a division by zero and a data stack
   overflow each give `<pkg>_runtime_error`, and the next call succeeds.
 - A pin with another interface hash stops `zugoose_update()`.
+- Generation stops, naming the range, patch or symbol, when a copied
+  upstream range changes, a patch does not apply, or a `gs_` symbol is
+  missing or extra. Each case has a test.
+- Generating the fixture on the Linux and macOS legs gives byte-identical
+  files.
 - The full r-actions profile is green on the pull request.
 
-**Design.** §4, §5, §6.1, §7 (scalars).
+**Design.** §4, §5, §6.1, §7 (scalars), D12.
 
 ## Stage 3 — Vectors, each and the zugoose module
 
@@ -243,6 +273,10 @@ that the generated files are current.
 - A pull request to `pedrobtz/zugojson`: delete its glue, runtime and
   scripts, switch its two Goose changes to `zugoose::fail()` and `each`
   (§9), and replace `goose.yaml` with the r-actions step.
+- A scheduled workflow (weekly, built on r-actions' `vendor-upstream.yml`
+  if it fits) that runs the generation pipeline and the fixture tests
+  against Goose's newest release and its `main`, and opens an issue
+  naming the first check that fails (D12).
 
 **Exit criteria.**
 
@@ -250,9 +284,12 @@ that the generated files are current.
   generated file.
 - The `zugojson` pull request passes its unchanged test suite on every
   r-actions leg, Windows included, and `zugoose_verify()` passes in its CI.
+- A manual run of the scheduled upstream workflow succeeds against the
+  pinned release, and fails with an issue when pointed at a release whose
+  runtime differs.
 - `R CMD check` passes on the quick profile.
 
-**Design.** §5 (`zugoose_verify()`), §9, §12.
+**Design.** §5 (`zugoose_verify()`), §9, §12, D12.
 
 ## Stage 7 — Full CI
 
@@ -302,9 +339,11 @@ default branch's code.
 - `R CMD check --as-cran` is clean for `zugoose` and the fixture package,
   with no `Imports`.
 - Every §12 criterion holds.
+- `zugoose_default_pin()` is a Goose release tag, and its `PROVENANCE`
+  checksums match (D11, D12).
 - A full-profile r-actions run is green on the release commit.
 
-**Design.** §2 (documentation), §12.
+**Design.** §2 (documentation), §12, D11.
 
 ## After 0.1.0
 

@@ -426,6 +426,20 @@ Marked **(M)** when the maintainer decided it in the conversation and
 - **D9 (M).** v0.1.0 ships its own runtime, and the upstream hook
   proposal of §6.3 runs in parallel without blocking it.
 - **D10 (M).** Windows blocks v0.1.0: stage 4 does not move to §14.
+- **D11 (M, 2026-10-25).** The pin of D5a is a Goose release tag, never
+  an untagged commit, recorded as the tag and its commit SHA so a moved
+  tag is caught. `zugoose_default_pin()` is the newest release when the
+  `zugoose` version is cut. An untagged commit is accepted only for
+  development, with a warning, and never in a `zugoose` release.
+- **D12 (M, 2026-10-25).** Everything `zugoose` takes from Goose is
+  reproducible from the pin: a pristine copy of `runtime.h` and
+  `runtime_impl.h` at the pin with checksums; each range copied into
+  `goose_vendor.c` checksummed against that copy; local changes as patch
+  files in `tools/patches/`, verified as "upstream plus exactly these
+  patches"; the `gs_` symbols the generated C needs checked against those
+  the runtime defines; byte-identical output on Linux and macOS. A
+  scheduled job runs the pipeline against Goose's newest release and
+  `main`, and opens an issue on the first thing that breaks.
 
 ## 14. Later versions, in the order they are expected
 
