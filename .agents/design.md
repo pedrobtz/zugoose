@@ -114,6 +114,13 @@ every package needs unchanged.
   (§9).
 - **`r-actions`**: a reusable workflow step that runs `zugoose_verify()` and
   the symbol check, in place of `zugojson`'s own `goose.yaml` (R5, R6).
+- **`zudiff`**
+  ([RFC 0045](https://github.com/pedrobtz/packages/blob/main/rfcs/not-started/0045-zudiff-sequence-diff-in-goose.md)):
+  the planned second user, and the first that is a base-layer package
+  rather than a demonstration. It needs borrowed `const i32[:]` and
+  `const u8[:]` parameters, `raw` results and interrupts, and starts after
+  v0.1.0. It packs a vector result into bytes, which makes it the first
+  consumer of §14's vector results.
 - **Any later Goose package**: built with `use_zugoose()` from its first
   commit.
 
@@ -444,7 +451,8 @@ Marked **(M)** when the maintainer decided it in the conversation and
 ## 14. Later versions, in the order they are expected
 
 - **Vector results**: numeric slices returned from an export, once Goose
-  allows them, and `const u8[:]` results from `each` functions.
+  allows them, and `const u8[:]` results from `each` functions. `zudiff`
+  is waiting on the first, to drop its packed edit script.
 - **Lists and data frames** across the boundary, as Goose structs and
   arrays of structs.
 - **Contained workers**: Goose threads that never touch R, with the
